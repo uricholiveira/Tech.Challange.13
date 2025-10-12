@@ -42,20 +42,20 @@ services:
       timeout: 5s
       retries: 5
   
-  #  api:
-  #    build:
-  #      dockerfile: Dockerfile
-  #      context: .
-  #    container_name: api_
-  #    networks:
-  #      - tech_challange_13
-  #    ports:
-  #      - "5000:5000"
-  #    environment:
-  #      ASPNETCORE_ENVIRONMENT: Development
-  #    depends_on:
-  #      - db
-  #      - rabbitmq
+  api:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: api_
+    networks:
+      - tech_challange_13
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+    depends_on:
+      - db
+      - rabbitmq
   
   localstack:
     image: localstack/localstack:latest
