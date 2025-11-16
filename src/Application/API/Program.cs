@@ -4,23 +4,15 @@ using Serilog;
 var builder = WebApplication.CreateBuilder(args);
 builder.ConfigureApi();
 
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .Enrich.WithMachineName()
-    .Enrich.WithEnvironmentName()
-    .Enrich.WithThreadId()
-    .CreateLogger();
-
-builder.Host.UseSerilog();
-
 try
 {
     Log.Information("Iniciando aplicação");
     var app = builder.Build();
     app.FinalizeApi();
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("🚀 Aplicação iniciada!");
+    logger.LogWarning("⚠️ Este é um warning de teste");
 
-    app.UseSerilogRequestLogging();
     await app.RunAsync();
 }
 catch (Exception ex)

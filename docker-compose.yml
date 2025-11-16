@@ -42,20 +42,20 @@ services:
       timeout: 5s
       retries: 5
   
-  api:
-    build:
-      dockerfile: Dockerfile
-      context: .
-    container_name: api_
-    networks:
-      - tech_challange_13
-    ports:
-      - "5000:5000"
-    environment:
-      ASPNETCORE_ENVIRONMENT: Docker
-    depends_on:
-      - db
-      - rabbitmq
+#  api:
+#    build:
+#      dockerfile: Dockerfile
+#      context: .
+#    container_name: api_
+#    networks:
+#      - tech_challange_13
+#    ports:
+#      - "5000:5000"
+#    environment:
+#      ASPNETCORE_ENVIRONMENT: Docker
+#    depends_on:
+#      - db
+#      - rabbitmq
   
   localstack:
     image: localstack/localstack:latest
@@ -74,12 +74,84 @@ services:
     volumes:
       - ./.devops/scripts/localstack:/etc/localstack/init/ready.d
       - localstack_data_x:/var/lib/localstack
+  
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    networks:
+      - tech_challange_13
+    volumes:
+      - ./.devops/docker/otel/configs/config.yaml:/etc/otel-collector-config.yaml:ro
+    command: [ "--config", "/etc/otel-collector-config.yaml" ]
+    ports:
+      - "4318:4318"
+      - "9464:9464"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    networks:
+      - tech_challange_13
+    volumes:
+      - ./.devops/docker/prometheus/configs/config.yaml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    networks:
+      - tech_challange_13
+    user: "0:0"  # Run as root user
+    volumes:
+      - ./.devops/docker/loki/configs/config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data_x:/tmp/loki
+    command: [ "-config.file=/etc/loki/local-config.yaml" ]
+    ports:
+      - "3100:3100"
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    networks:
+      - tech_challange_13
+    user: "0:0"  # Run as root user
+    volumes:
+      - ./.devops/docker/tempo/configs/config.yaml:/etc/tempo/tempo-local.yaml:ro
+      - tempo_data_x:/tmp/tempo
+    command: [ "-config.file=/etc/tempo/tempo-local.yaml" ]
+    ports:
+      - "3200:3200"   # HTTP query port
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    networks:
+      - tech_challange_13
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./.devops/docker/grafana/configs/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./.devops/docker/grafana/configs/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
 
 volumes:
   postgres_data_x:
   localstack_data_x:
   redis_data_x:
   rabbitmq_data_x:
+  loki_data_x:
+  tempo_data_x:
 
 networks:
   tech_challange_13:
